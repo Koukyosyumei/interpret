@@ -3,14 +3,14 @@
 
 # NOTE: This module is going to through some major refactoring shortly. Do not use directly.
 
-import plotly.graph_objs as go
-import numpy as np
-from plotly import subplots
-import matplotlib.pyplot as plt
+import logging
 from numbers import Number
 
-
-import logging
+import colorlover as cl
+import matplotlib.pyplot as plt
+import numpy as np
+import plotly.graph_objs as go
+from plotly import subplots
 
 log = logging.getLogger(__name__)
 
@@ -190,7 +190,11 @@ def plot_continuous_bar(
     # Add density
     if data_dict.get("density", None) is not None:
         figure = _plot_with_density(
-            data_dict["density"], main_fig, title=title, yrange=yrange, showlegend=show_legend
+            data_dict["density"],
+            main_fig,
+            title=title,
+            yrange=yrange,
+            showlegend=show_legend,
         )
     else:
         figure = main_fig
@@ -258,7 +262,7 @@ def plot_density(
         go.Bar(
             x=x_vals,
             y=counts,
-            hovertemplate='(%{hovertext}): %{y}',
+            hovertemplate="(%{hovertext}): %{y}",
             hovertext=x_text,
             name=name,
             marker=dict(color=color),
@@ -272,14 +276,15 @@ def plot_density(
         hovermode="closest",
     )
     if not is_categorical:
-        layout['xaxis']=dict(
+        layout["xaxis"] = dict(
             title=xtitle,
-            tickmode = 'array',
-            tickvals = x_vals,
-            ticktext = x_text,
+            tickmode="array",
+            tickvals=x_vals,
+            ticktext=x_text,
         )
     bar_fig = go.Figure(data, layout)
     return bar_fig
+
 
 def _plot_with_density(
     data_dict,
@@ -295,13 +300,19 @@ def _plot_with_density(
     bar_fig = plot_density(
         data_dict, name=density_name, is_categorical=is_categorical, color=COLORS[1]
     )
-    figure = _two_plot(main_fig, bar_fig, title=title, share_xaxis=is_categorical, showlegend=showlegend)
+    figure = _two_plot(
+        main_fig,
+        bar_fig,
+        title=title,
+        share_xaxis=is_categorical,
+        showlegend=showlegend,
+    )
     figure["layout"]["yaxis1"].update(title="Score")
     figure["layout"]["yaxis2"].update(title="Density")
     if not is_categorical:
         figure["layout"]["bargap"] = 0
         figure["layout"]["xaxis2"].update(bar_fig.layout.xaxis)
-        figure.update_xaxes(matches='x')
+        figure.update_xaxes(matches="x")
     if yrange is not None:
         figure["layout"]["yaxis1"].update(range=yrange)
     return figure
@@ -424,7 +435,7 @@ def plot_bar(data_dict, title="", xtitle="", ytitle=""):
                 x=x,
                 y=y[:, i],
                 error_y=dict(type="data", array=y_err[:, i], visible=True),
-                name=class_name
+                name=class_name,
             )
             traces.append(class_bar)
     else:
@@ -457,7 +468,7 @@ def plot_bar(data_dict, title="", xtitle="", ytitle=""):
             title=title,
             is_categorical=True,
             yrange=yrange,
-            showlegend=multiclass
+            showlegend=multiclass,
         )
     else:
         figure = main_fig
@@ -498,7 +509,7 @@ def plot_horizontal_bar(
 
         if (
             "meta" in data_dict and "label_names" in data_dict["meta"]
-        ):  # Classification titles   
+        ):  # Classification titles
             label_names = data_dict["meta"]["label_names"]
             predicted = label_names[predicted]
 
@@ -776,17 +787,19 @@ def rules_to_html(data_dict, title=""):  # pragma: no cover
     return html_str
 
 
-def plot_ebm_multiple_booleans(feat_names, ebm_global, mpl_style=False, figname=None):  # pragma: no cover
+def plot_ebm_multiple_booleans(
+    feat_names, ebm_global, mpl_style=False, figname=None
+):  # pragma: no cover
     """
-        Helper function to plot the effect sizes of many Boolean features on the same figure.
-        Args:
-            feat_names: list of feature names to be plotted.
-            ebm_global: Explanation Object for which the effect sizes should be plotted.
-            mpl_style: Boolean, if True the Figure is plotted in matplotlib style.
-                        If False, the Figure is plotted as an interactive Plotly figure.
-            figname: str name of figure to be saved. If none, the figure is not saved.
-        Returns:
-            None
+    Helper function to plot the effect sizes of many Boolean features on the same figure.
+    Args:
+        feat_names: list of feature names to be plotted.
+        ebm_global: Explanation Object for which the effect sizes should be plotted.
+        mpl_style: Boolean, if True the Figure is plotted in matplotlib style.
+                    If False, the Figure is plotted as an interactive Plotly figure.
+        figname: str name of figure to be saved. If none, the figure is not saved.
+    Returns:
+        None
     """
     names = []
     upper_bounds = []
@@ -797,27 +810,43 @@ def plot_ebm_multiple_booleans(feat_names, ebm_global, mpl_style=False, figname=
     for i, feat_name in enumerate(ebm_global.feature_names):
         if feat_name in feat_names:
             my_data = ebm_global.data(i)
-            if len(my_data['scores']) == 2:
-                my_name = "{} ({})".format(feat_name, my_data['density']['scores'][1])
+            if len(my_data["scores"]) == 2:
+                my_name = "{} ({})".format(feat_name, my_data["density"]["scores"][1])
                 names.append(my_name)
-                impacts.append(my_data['scores'][1]-my_data['scores'][0])
-                upper_bounds.append(my_data['upper_bounds'][1] - my_data['lower_bounds'][0])
-                lower_bounds.append(my_data['lower_bounds'][1] - my_data['upper_bounds'][0])
-                densities.append(my_data['density']['scores'][1])
+                impacts.append(my_data["scores"][1] - my_data["scores"][0])
+                upper_bounds.append(
+                    my_data["upper_bounds"][1] - my_data["lower_bounds"][0]
+                )
+                lower_bounds.append(
+                    my_data["lower_bounds"][1] - my_data["upper_bounds"][0]
+                )
+                densities.append(my_data["density"]["scores"][1])
                 counter += 1
             else:
-                print("Feature: {} is not observed as a Boolean variable.".format(feat_name))
+                print(
+                    "Feature: {} is not observed as a Boolean variable.".format(
+                        feat_name
+                    )
+                )
     if mpl_style:
         _ = plt.figure(figsize=(12, 12))
         sorted_i = np.argsort(impacts)
         for counter, i in enumerate(sorted_i):
-            plt.bar(counter, impacts[i], width=0.5, color='blue', edgecolor='black',
-                   yerr=upper_bounds[i]-impacts[i]) # Assume symmetric error.
-        plt.xticks(range(len(names)), np.array(names)[sorted_i], rotation=90, fontsize=24)
+            plt.bar(
+                counter,
+                impacts[i],
+                width=0.5,
+                color="blue",
+                edgecolor="black",
+                yerr=upper_bounds[i] - impacts[i],
+            )  # Assume symmetric error.
+        plt.xticks(
+            range(len(names)), np.array(names)[sorted_i], rotation=90, fontsize=24
+        )
         plt.ylabel("Addition to Score", fontsize=32)
         plt.yticks(fontsize=26)
         if figname is not None:
-            plt.savefig(figname, dpi=300, bbox_inches='tight')
+            plt.savefig(figname, dpi=300, bbox_inches="tight")
         else:
             plt.show()
     else:
@@ -826,14 +855,94 @@ def plot_ebm_multiple_booleans(feat_names, ebm_global, mpl_style=False, figname=
         impacts = np.array(impacts)[sorted_i]
         upper_bounds = np.array(upper_bounds)[sorted_i]
         lower_bounds = np.array(lower_bounds)[sorted_i]
-        densities_dict = {'names': names,
-                          'scores': np.array(densities)[sorted_i]}
-        data_dict = {'type': 'univariate',
-            'names': names,
-            'scores': impacts,
-            'scores_range': (np.min(lower_bounds), np.max(upper_bounds)),
-            'upper_bounds': upper_bounds,
-            'lower_bounds': lower_bounds,
-            'density': densities_dict,
-            }
+        densities_dict = {"names": names, "scores": np.array(densities)[sorted_i]}
+        data_dict = {
+            "type": "univariate",
+            "names": names,
+            "scores": impacts,
+            "scores_range": (np.min(lower_bounds), np.max(upper_bounds)),
+            "upper_bounds": upper_bounds,
+            "lower_bounds": lower_bounds,
+            "density": densities_dict,
+        }
         plot_bar(data_dict)
+
+
+def svm_boundary_plot(X_train, y_train, Z, xx, yy, mesh_step, threshold):
+    # Compute threshold
+    scaled_threshold = threshold  # * (Z.max() - Z.min()) + Z.min()
+    range = max(abs(scaled_threshold - Z.min()), abs(scaled_threshold - Z.max()))
+
+    # Colorscale
+    bright_cscale = [[0, "#FF0000"], [1, "#0000FF"]]
+
+    colorscale_zip = zip(np.arange(0, 1.01, 1 / 8), cl.scales["9"]["div"]["RdBu"])
+    cscale = list(map(list, colorscale_zip))
+
+    # Create the plot
+    # Plot the prediction contour of the SVM
+    trace0 = go.Contour(
+        x=np.arange(xx.min(), xx.max(), mesh_step),
+        y=np.arange(yy.min(), yy.max(), mesh_step),
+        z=Z.reshape(xx.shape),
+        zmin=scaled_threshold - range,
+        zmax=scaled_threshold + range,
+        hoverinfo="none",
+        showscale=False,
+        contours=dict(showlines=False),
+        colorscale=cscale,
+        opacity=0.9,
+    )
+
+    # Plot the threshold
+    trace1 = go.Contour(
+        x=np.arange(xx.min(), xx.max(), mesh_step),
+        y=np.arange(yy.min(), yy.max(), mesh_step),
+        z=Z.reshape(xx.shape),
+        showscale=False,
+        hoverinfo="none",
+        contours=dict(
+            showlines=False,
+            type="constraint",
+            operation="=",
+            value=scaled_threshold,
+        ),
+        name=f"Threshold ({scaled_threshold:.3f})",
+        line=dict(color="#222222"),
+    )
+
+    # Plot Training Data
+    trace2 = go.Scatter(
+        x=X_train[:, 0],
+        y=X_train[:, 1],
+        mode="markers",
+        name="Training Data",
+        marker=dict(
+            size=10, color=y_train, colorscale=bright_cscale, line=dict(width=1)
+        ),
+    )
+
+    layout = go.Layout(
+        xaxis=dict(
+            # scaleanchor="y",
+            # scaleratio=1,
+            ticks="",
+            showticklabels=False,
+            showgrid=False,
+            zeroline=False,
+        ),
+        yaxis=dict(
+            ticks="",
+            showticklabels=False,
+            showgrid=False,
+            zeroline=False,
+        ),
+        hovermode="closest",
+        legend=dict(x=0, y=-0.01, orientation="h"),
+        margin=dict(l=0, r=0, t=0, b=0),
+    )
+
+    data = [trace0, trace1, trace2]
+    figure = go.Figure(data=data, layout=layout)
+
+    return figure
