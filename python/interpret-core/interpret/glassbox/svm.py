@@ -1,6 +1,9 @@
 from abc import abstractmethod
 
+import colorlover as cl
+import matplotlib.pyplot as plt
 import numpy as np
+import plotly.graph_objs as go
 from sklearn.base import ClassifierMixin, RegressorMixin, is_classifier
 from sklearn.svm import SVC as SKSVMClassifier
 from sklearn.svm import SVR as SKSVMRegressor
@@ -17,7 +20,7 @@ from ..utils import (
 )
 
 
-class SVMExplanation(FeatureValueExplanation):
+class SVM2DExplanation(FeatureValueExplanation):
     """ Visualizes specifically for SVM methods. """
 
     explanation_type = None
@@ -42,7 +45,71 @@ class SVMExplanation(FeatureValueExplanation):
             selector: A dataframe whose indices correspond to explanation entries.
         """
 
-        super(SVMExplanation, self).__init__(
+        super(SVM2DExplanation, self).__init__(
+            explanation_type,
+            internal_obj,
+            feature_names=feature_names,
+            feature_types=feature_types,
+            name=name,
+            selector=selector,
+        )
+
+    def visualize(self, key=None):
+        """Provides interactive visualizations.
+
+        Args:
+            key: Either a scalar or list
+                that indexes the internal object for sub-plotting.
+                If an overall visualization is requested, pass None.
+
+        Returns:
+            A Plotly figure.
+        """
+        from ..visual.plot import svm_boundary_plot
+
+        data_dict = self._internal_obj["specific"]
+        if self.explanation_type == "global":
+            figure = svm_boundary_plot(
+                data_dict["X"],
+                data_dict["y"],
+                data_dict["z"],
+                data_dict["xx"],
+                data_dict["yy"],
+                data_dict["h"],
+                0.5,
+            )
+
+            return figure
+
+        return super().visualize(key)
+
+
+class LinearSVMExplanation(FeatureValueExplanation):
+    """ Visualizes specifically for SVM methods. """
+
+    explanation_type = None
+
+    def __init__(
+        self,
+        explanation_type,
+        internal_obj,
+        feature_names=None,
+        feature_types=None,
+        name=None,
+        selector=None,
+    ):
+        """Initializes class.
+
+        Args:
+            explanation_type:  Type of explanation.
+            internal_obj: A jsonable object that backs the explanation.
+            feature_names: List of feature names.
+            feature_types: List of feature types.
+            name: User-defined name of explanation.
+            selector: A dataframe whose indices correspond to explanation entries.
+        """
+
+        super(LinearSVMExplanation, self).__init__(
             explanation_type,
             internal_obj,
             feature_names=feature_names,
@@ -126,7 +193,7 @@ class BaseSVM:
         feature_names=None,
         feature_types=None,
         svm_class=SKSVMClassifier,
-        **kwargs
+        **kwargs,
     ):
         """Initializes class.
         Args:
@@ -149,6 +216,8 @@ class BaseSVM:
         X, y, self.feature_names, self.feature_types = unify_data(
             X, y, self.feature_names, self.feature_types
         )
+        self.X = X
+        self.y = y
 
         sk_model_ = self._model()
         sk_model_.fit(X, y)
@@ -267,7 +336,48 @@ class BaseSVM:
             selector=selector,
         )
 
-    def explain_global(self, name=None):
+    def _explain_global_2d(self, name=None):
+        """Provides global explanation for model.
+
+        Args:
+            name: User-defined explanation name.
+
+        Returns:
+            An explanation object,
+            visualizing feature-value pairs as horizontal bar chart.
+        """
+        if name is None:
+            name = gen_name_from_class(self)
+
+        h = 0.3  # (self.X.max() - self.X.min()) / 50
+
+        x_min = self.X[:, 0].min() - 0.5
+        x_max = self.X[:, 0].max() + 0.5
+        y_min = self.X[:, 1].min() - 0.5
+        y_max = self.X[:, 1].max() + 0.5
+        xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
+
+        sk_model_ = self._model()
+        if hasattr(sk_model_, "decision_function"):
+            Z = sk_model_.decision_function(np.c_[xx.ravel(), yy.ravel()])
+        else:
+            Z = sk_model_.predict_proba(np.c_[xx.ravel(), yy.ravel()])[:, 1]
+
+        data_dict = {"X": self.X, "y": self.y, "xx": xx, "yy": yy, "z": Z, "h": h}
+        internal_obj = {
+            "overall": None,
+            "specific": data_dict,
+        }
+        return SVM2DExplanation(
+            "global",
+            internal_obj,
+            feature_names=self.feature_names,
+            feature_types=self.feature_types,
+            name=name,
+            selector=self.global_selector,
+        )
+
+    def _explain_global_linear(self, name=None):
         """Provides global explanation for model.
 
         Args:
@@ -331,7 +441,7 @@ class BaseSVM:
                 }
             ],
         }
-        return SVMExplanation(
+        return LinearSVMExplanation(
             "global",
             internal_obj,
             feature_names=self.feature_names,
@@ -339,6 +449,22 @@ class BaseSVM:
             name=name,
             selector=self.global_selector,
         )
+
+    def explain_global(self, name=None, mode="coef"):
+        """Provides global explanation for model.
+
+        Args:
+            name: User-defined explanation name.
+            mode: coef or boundary
+
+        Returns:
+            An explanation object,
+            visualizing feature-value pairs as horizontal bar chart.
+        """
+        if mode == "coef":
+            return self._explain_global_linear(name=name)
+        elif mode == "boundary":
+            return self._explain_global_2d(name=name)
 
 
 class SVMRegressor(BaseSVM, RegressorMixin, ExplainerMixin):
@@ -388,7 +514,7 @@ class SVMClassifier(BaseSVM, ClassifierMixin, ExplainerMixin):
         feature_names=None,
         feature_types=None,
         svm_class=SKSVMClassifier,
-        **kwargs
+        **kwargs,
     ):
         """Initializes class.
 
