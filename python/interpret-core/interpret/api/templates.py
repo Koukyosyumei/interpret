@@ -5,8 +5,8 @@ from .base import ExplanationMixin
 
 
 class FeatureValueExplanation(ExplanationMixin):
-    """ Handles explanations that can be visualized as horizontal bar graphs.
-        Usually these are feature-value pairs being represented.
+    """Handles explanations that can be visualized as horizontal bar graphs.
+    Usually these are feature-value pairs being represented.
     """
 
     explanation_type = None
@@ -20,7 +20,7 @@ class FeatureValueExplanation(ExplanationMixin):
         name=None,
         selector=None,
     ):
-        """ Initializes class.
+        """Initializes class.
 
         Args:
             explanation_type:  Type of explanation.
@@ -38,7 +38,7 @@ class FeatureValueExplanation(ExplanationMixin):
         self.selector = selector
 
     def data(self, key=None):
-        """ Provides specific explanation data.
+        """Provides specific explanation data.
 
         Args:
             key: A number/string that references a specific data item.
@@ -62,7 +62,7 @@ class FeatureValueExplanation(ExplanationMixin):
         return self._internal_obj["specific"][key]
 
     def visualize(self, key=None):
-        """ Provides interactive visualizations.
+        """Provides interactive visualizations.
 
         Args:
             key: Either a scalar or list
@@ -72,20 +72,11 @@ class FeatureValueExplanation(ExplanationMixin):
         Returns:
             A Plotly figure.
         """
-        from ..visual.plot import (
-            plot_line,
-            plot_bar,
-            plot_horizontal_bar,
-            mli_plot_horizontal_bar,
-            is_multiclass_local_data_dict,
-        )
-        from ..visual.plot import (
-            get_sort_indexes,
-            get_explanation_index,
-            sort_take,
-            mli_sort_take,
-            plot_pairwise_heatmap,
-        )
+        from ..visual.plot import (get_explanation_index, get_sort_indexes,
+                                   is_multiclass_local_data_dict,
+                                   mli_plot_horizontal_bar, mli_sort_take,
+                                   plot_bar, plot_horizontal_bar, plot_line,
+                                   plot_pairwise_heatmap, sort_take)
 
         data_dict = self.data(key)
         if data_dict is None:  # pragma: no cover
