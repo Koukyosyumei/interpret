@@ -57,6 +57,16 @@ def gen_global_selector3(
 
 
 def extract_gain_from_treeinfo(tree_info, feature_names):
+    """Extract gain obtained by each feature.
+
+    Args:
+        tree_info: tree_info of lgbm class
+        feature_names: list of the feature names
+
+    Returns:
+        return a dictionary whose keys are the names of feature including pairwise features,
+        and values are the gain obtained by each feature.
+    """
     num_trees = len(tree_info)
     features2gain = {}
 
@@ -89,6 +99,16 @@ def extract_gain_from_treeinfo(tree_info, feature_names):
 
 
 def convert_treeinfo_to_features2treeidx(tree_info):
+    """Convert a tree_info of LGBM to a dictionary whose key is a "idx" of a feaure or
+    "idx x idx" (for a pairwise feature), and value is a list which contains the trees
+    that uses the corresponding feature.
+
+    Args:
+        tree_info: tree_info of lgbm class
+
+    Returns:
+        return a dictionary
+    """
     num_trees = len(tree_info)
     features2tree = {}
 
@@ -116,6 +136,19 @@ def convert_treeinfo_to_features2treeidx(tree_info):
 
 
 def update_feature_names_and_types(features2tree, feature_names, feature_types):
+    """Create a new feature_names and feature_types which contains pairwise features
+
+    Args:
+        feature2tree: a dictionary whose keys are the idx or "idx x idx" of each features
+        feature_names: a list of feature names
+        feature_types: a list of feature types
+
+    Returns:
+        feature_names: a list of feature names including pairwise features
+        feature_types: a list of feature types including pairwise features
+        feature_idxs: ith value indicates which of original features ith feature is made up of
+                      (Ex. if ith feature is "1 x 2", then feature_idxs[i] = [1, 2])
+    """
     feature_idxs = [[i] for i in range(len(feature_names))]
     for key in features2tree.keys():
         features = key.split(" x ")
@@ -179,8 +212,13 @@ class BaseLGBM:
                 self.categorical_uniq_[i] = list(sorted(set(X[:, i])))
 
         self.bin_counts_, self.bin_edges_ = hist_per_column(X, self.feature_types)
+
+        # extract the tree structure
         self.tree_info = model_._Booster.dump_model()["tree_info"]
+        # convert the tree structure to a dictionary which shows the
+        # assignment relationship between features and trees.
         self.feature2tree = convert_treeinfo_to_features2treeidx(self.tree_info)
+        # add pairwise features to faeture_names and feature_types
         (
             self.feature_names_withpairwise,
             self.feature_types_withpairwise,
@@ -208,6 +246,7 @@ class BaseLGBM:
         return self._model().predict(X)
 
     def tree_importance(self):
+        """Returns a dictionary which shows the importance of each tree"""
         return extract_gain_from_treeinfo(
             self.tree_info, self.feature_names_withpairwise
         )
@@ -344,6 +383,7 @@ class BaseLGBM:
         if name is None:
             name = gen_name_from_class(self)
 
+        # get importance of each tree
         tree_importance = self.tree_importance()
         overall_data_dict = {
             "names": list(tree_importance.keys()),
@@ -358,6 +398,8 @@ class BaseLGBM:
         feature_idxs_used = []
         for index, feat_idxs in enumerate(self.feature_idxs_withpairwise):
             feature_group_idxs = " x ".join([str(i) for i in feat_idxs])
+
+            # if the trained LGBM does not use this feature,
             if feature_group_idxs not in self.feature2tree:
                 continue
 
@@ -365,6 +407,7 @@ class BaseLGBM:
             feature_types_used.append(self.feature_types_withpairwise[index])
             feature_idxs_used.append(index)
 
+            # single feature
             if len(feat_idxs) == 1:
                 grid_points = self._get_grid_points(index)
                 grids = np.zeros((grid_points.shape[0], self.X.shape[1]))
@@ -385,7 +428,7 @@ class BaseLGBM:
                         "names": self.bin_edges_[index],
                     },
                 }
-
+            # pairwise feature
             else:
                 grid_points_x = self._get_grid_points(feat_idxs[0])
                 grid_points_y = self._get_grid_points(feat_idxs[1])
@@ -449,10 +492,7 @@ class BaseLGBM:
 
 
 class LGBMClassifier(BaseLGBM, ClassifierMixin, ExplainerMixin):
-    """SVM classifier.
-
-    Currently wrapper around svm models in scikit-learn: https://github.com/scikit-learn/scikit-learn
-    """
+    """LGBM classifier."""
 
     def __init__(
         self,
@@ -466,7 +506,7 @@ class LGBMClassifier(BaseLGBM, ClassifierMixin, ExplainerMixin):
         Args:
             feature_names: List of feature names.
             feature_types: List of feature types.
-            svm_class: A scikit-learn svm class.
+            lgbm_class: A LGBM class.
             **kwargs: Kwargs pass to linear class at initialization time.
         """
         super().__init__(feature_names, feature_types, lgbm_class, **kwargs)
