@@ -23,6 +23,7 @@ from ..utils import (
 def gen_global_selector3(
     X, feature_names, feature_types, feature_idxs, importance_scores, round=3
 ):
+    """Custom selector which can deal with pairwise features."""
     records = []
 
     for f_name, f_type, f_idx in zip(feature_names, feature_types, feature_idxs):
@@ -414,6 +415,7 @@ class BaseLGBM:
                 grids[:, feat_idxs[0]] = grid_points
 
                 scores = np.zeros(grid_points.shape[0])
+                # get the sum of predictions made by the trees whihc use the specified feature
                 for tree_idx in self.feature2tree[feature_group_idxs]:
                     scores += _model.predict(
                         grids, raw_score=True, start_iteration=tree_idx, num_iteration=1
