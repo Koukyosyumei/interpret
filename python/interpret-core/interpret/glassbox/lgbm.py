@@ -10,14 +10,9 @@ from sklearn.base import ClassifierMixin, RegressorMixin, is_classifier
 
 from ..api.base import ExplainerMixin
 from ..api.templates import FeatureValueExplanation
-from ..utils import (
-    gen_global_selector,
-    gen_local_selector,
-    gen_name_from_class,
-    gen_perf_dicts,
-    hist_per_column,
-    unify_data,
-)
+from ..utils import (gen_global_selector, gen_local_selector,
+                     gen_name_from_class, gen_perf_dicts, hist_per_column,
+                     unify_data)
 
 
 def gen_global_selector3(
@@ -510,6 +505,15 @@ class LGBMClassifier(BaseLGBM, ClassifierMixin, ExplainerMixin):
             feature_types: List of feature types.
             lgbm_class: A LGBM class.
             **kwargs: Kwargs pass to linear class at initialization time.
+
+        Examples:
+            >>> clf = LGBMClassifier(num_iterations=200, max_depth=2, num_leaves=3)
+            >>> clf.fit(X_train, y_train)
+            >>> clf.score(X_test, y_test)
+            0.8316831683168316
+            >>> clf_global = clf.explain_global(name='LGBM')
+            >>> clf_local = clf.explain_local(X_test[:5], name='LGBM')
+            >>> show([clf_global, clf_local])
         """
         super().__init__(feature_names, feature_types, lgbm_class, **kwargs)
         if kwargs["max_depth"] == 1:
