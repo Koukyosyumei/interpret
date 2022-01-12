@@ -7,4 +7,3 @@ from .ebm.ebm import ExplainableBoostingRegressor  # noqa: F401
 from .lgbm import LGBMClassifier  # noqa: F401
 from .linear import LinearRegression, LogisticRegression  # noqa: F401
 from .skoperules import DecisionListClassifier  # noqa: F401
-from .svm import SVMClassifier, SVMRegressor  # noqa: F401
